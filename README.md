@@ -1,21 +1,66 @@
-# TanStack Start + shadcn/ui
+# Meili UI
 
-This is a template for a new TanStack Start project with React, TypeScript, and shadcn/ui.
+Internal Meilisearch admin UI built with TanStack Start, React, TypeScript, Tailwind, and shadcn/basecn components.
 
-## Adding components
+This app is for internal use. In the current phase there is no login, no server-side proxy, and no shared persistence. Users enter a Meilisearch host and API key in the browser, and the app stores those values in `localStorage`.
 
-To add components to your app, run the following command:
+## What It Does
+
+- Save multiple Meilisearch instances in `localStorage`
+- Select an instance and browse its indexes
+- View index documents as a table or raw JSON
+- Create, edit, and delete single documents through JSON
+- Inspect recent tasks
+- View and update index settings as raw JSON
+
+## Current Limits
+
+- No authentication yet
+- No bulk document import or delete
+- No instance-wide settings editor
+- API keys are stored in plaintext in browser `localStorage`
+
+That last one is intentional for now. It is fine for an internal-only phase, and a terrible idea for anything public. Software has standards.
+
+## Tech Stack
+
+- React 19 + TypeScript
+- TanStack Start + TanStack Router
+- Tailwind CSS v4
+- shadcn/ui and basecn primitives
+- Meilisearch JavaScript client
+- Vitest for unit tests
+
+## Local Development
+
+Install dependencies:
 
 ```bash
-npx shadcn@latest add button
+bun install
 ```
 
-This will place the ui components in the `components` directory.
+Start the app on `http://localhost:3000`:
 
-## Using components
-
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button";
+```bash
+bun run dev
 ```
+
+Other useful commands:
+
+```bash
+bun run test
+bun run typecheck
+bun run build
+bun run lint
+```
+
+## Project Structure
+
+- `src/routes/`: app pages and route-driven UI
+- `src/features/meili/`: page-level Meilisearch UI compositions
+- `src/lib/meili/`: storage, client helpers, and document utilities
+- `src/components/ui/`: shared shadcn/basecn primitives
+
+## Notes For Validation
+
+Local validation can use `.env` values such as `MEILISEARCH_URL`, `MEILISEARCH_API_KEY`, and `MEILISEARCH_BIV_PRODUCT_INDEX`, but the app itself does not read them at runtime. The intended product flow is still manual entry through the UI.
