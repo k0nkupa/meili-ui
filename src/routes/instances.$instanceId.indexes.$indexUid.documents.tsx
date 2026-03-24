@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { ChevronLeftIcon } from "lucide-react"
 
-import type {DocumentRecord} from "@/lib/meili/api";
+import type { DocumentRecord } from "@/lib/meili/api"
+import {
+  DocumentRawJsonView,
+  DocumentValueCell,
+} from "@/features/meili/document-viewers"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   AlertDialog,
@@ -35,7 +39,6 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Table,
   TableBody,
@@ -47,14 +50,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  
   deleteDocument,
   getDocument,
-  listDocuments, upsertDocument 
+  listDocuments,
+  upsertDocument,
 } from "@/lib/meili/api"
 import {
   deriveDocumentColumns,
-  formatDocumentCellValue,
   getDocumentIdentifier,
 } from "@/lib/meili/documents"
 import { useSavedInstances } from "@/lib/meili/use-saved-instances"
@@ -166,6 +168,46 @@ function DocumentsPage() {
     () => deriveDocumentColumns(documents, primaryKey),
     [documents, primaryKey]
   )
+  const rawMetadata = useMemo(() => {
+    const metadata = [
+      { label: "Primary key", value: primaryKey ?? "Not configured" },
+      { label: "Result window", value: String(documents.length) },
+      { label: "Total matches", value: String(total) },
+      { label: "Page", value: String(search.page) },
+      { label: "Limit", value: String(search.limit) },
+    ]
+    const payload = isRecord(rawPayload) ? rawPayload : null
+    const processingTimeMs = getNumericField(payload, "processingTimeMs")
+
+    if (search.query.trim()) {
+      metadata.unshift({
+        label: "Query",
+        value: search.query.trim(),
+      })
+    } else {
+      metadata.push({
+        label: "Offset",
+        value: String((search.page - 1) * search.limit),
+      })
+    }
+
+    if (processingTimeMs !== null) {
+      metadata.push({
+        label: "Processing time",
+        value: `${processingTimeMs} ms`,
+      })
+    }
+
+    return metadata
+  }, [
+    documents.length,
+    primaryKey,
+    rawPayload,
+    search.limit,
+    search.page,
+    search.query,
+    total,
+  ])
   const totalPages = Math.max(1, Math.ceil(total / search.limit))
 
   function updateSearch(nextSearch: Partial<typeof search>) {
@@ -187,10 +229,15 @@ function DocumentsPage() {
       return
     }
 
-    const document = await getDocument(instance, indexUid, documentId)
-    setEditorTitle(`Edit ${documentId}`)
-    setEditorValue(JSON.stringify(document, null, 2))
-    setEditorOpen(true)
+    try {
+      const document = await getDocument(instance, indexUid, documentId)
+
+      setEditorTitle(`Edit ${documentId}`)
+      setEditorValue(JSON.stringify(document, null, 2))
+      setEditorOpen(true)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unknown error")
+    }
   }
 
   async function handleSaveDocument(event: React.FormEvent<HTMLFormElement>) {
@@ -207,7 +254,11 @@ function DocumentsPage() {
         throw new Error("Document payload must be a single JSON object.")
       }
 
-      const task = await upsertDocument(instance, indexUid, parsed as DocumentRecord)
+      const task = await upsertDocument(
+        instance,
+        indexUid,
+        parsed as DocumentRecord
+      )
       setResultMessage(`Document update enqueued as task ${task.taskUid}.`)
       setEditorOpen(false)
       updateSearch({})
@@ -365,11 +416,11 @@ function DocumentsPage() {
                           return (
                             <TableRow key={documentId ?? `${index}`}>
                               {columns.map((column) => (
-                                <TableCell key={column}>
-                                  {formatDocumentCellValue(document[column])}
+                                <TableCell className="align-top" key={column}>
+                                  <DocumentValueCell value={document[column]} />
                                 </TableCell>
                               ))}
-                              <TableCell>
+                              <TableCell className="w-[1%] whitespace-nowrap">
                                 <div className="flex flex-wrap gap-2">
                                   <Button
                                     disabled={!documentId}
@@ -459,22 +510,23 @@ function DocumentsPage() {
                   <CardHeader>
                     <CardTitle>Raw payload</CardTitle>
                     <CardDescription>
-                      Pretty-printed JSON from the current documents request.
+                      One card per returned document, plus request metadata that
+                      is actually useful.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ScrollArea className="h-[40rem] rounded-md border">
-                      <pre className="p-4 text-xs leading-6 whitespace-pre-wrap">
-                        {JSON.stringify(rawPayload, null, 2)}
-                      </pre>
-                    </ScrollArea>
+                    <DocumentRawJsonView
+                      documents={documents}
+                      metadata={rawMetadata}
+                      primaryKey={primaryKey}
+                    />
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
 
             <Dialog onOpenChange={setEditorOpen} open={editorOpen}>
-              <DialogContent className="sm:max-w-3xl">
+              <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-5xl">
                 <DialogHeader>
                   <DialogTitle>{editorTitle}</DialogTitle>
                   <DialogDescription>
@@ -483,23 +535,23 @@ function DocumentsPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <form
-                  className="flex flex-col gap-6"
+                  className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden"
                   onSubmit={handleSaveDocument}
                 >
-                  <FieldGroup>
-                    <Field>
+                  <FieldGroup className="min-h-0 flex-1">
+                    <Field className="min-h-0 flex-1">
                       <FieldLabel htmlFor="document-json">
                         Document JSON
                       </FieldLabel>
                       <Textarea
-                        className="min-h-[24rem] font-mono text-xs"
+                        className="min-h-[32rem] flex-1 overflow-auto font-mono text-xs leading-6 [tab-size:2]"
                         id="document-json"
                         onChange={(event) => setEditorValue(event.target.value)}
                         value={editorValue}
                       />
                     </Field>
                   </FieldGroup>
-                  <DialogFooter>
+                  <DialogFooter className="shrink-0">
                     <Button type="submit">Save document</Button>
                   </DialogFooter>
                 </form>
@@ -510,4 +562,17 @@ function DocumentsPage() {
       </div>
     </main>
   )
+}
+
+function getNumericField(
+  value: Record<string, unknown> | null,
+  key: string
+): number | null {
+  const candidate = value?.[key]
+
+  return typeof candidate === "number" ? candidate : null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }

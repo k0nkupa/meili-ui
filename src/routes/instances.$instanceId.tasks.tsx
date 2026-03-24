@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { ChevronLeftIcon } from "lucide-react"
 
+import type { ComponentProps } from "react"
 import type { TaskStatus, TaskType } from "meilisearch"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -73,7 +74,9 @@ function TasksPage() {
         const response = await listTasks(currentInstance, {
           indexUid: indexFilter || undefined,
           limit: 20,
-          statuses: statusFilter ? ([statusFilter] as Array<TaskStatus>) : undefined,
+          statuses: statusFilter
+            ? ([statusFilter] as Array<TaskStatus>)
+            : undefined,
           types: typeFilter ? ([typeFilter] as Array<TaskType>) : undefined,
         })
 
@@ -228,7 +231,11 @@ function TasksPage() {
                         <TableRow key={String(task.uid ?? Math.random())}>
                           <TableCell>{String(task.uid ?? "-")}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">
+                            <Badge
+                              variant={getTaskStatusBadgeVariant(
+                                task.status as TaskStatus | undefined
+                              )}
+                            >
                               {String(task.status ?? "unknown")}
                             </Badge>
                           </TableCell>
@@ -273,4 +280,22 @@ function TasksPage() {
       </div>
     </main>
   )
+}
+
+function getTaskStatusBadgeVariant(
+  status: TaskStatus | undefined
+): ComponentProps<typeof Badge>["variant"] {
+  switch (status) {
+    case "succeeded":
+      return "secondary"
+    case "processing":
+      return "default"
+    case "failed":
+    case "canceled":
+      return "destructive"
+    case "enqueued":
+      return "outline"
+    default:
+      return "ghost"
+  }
 }
