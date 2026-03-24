@@ -8,59 +8,161 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root"
-import { Route as IndexRouteImport } from "./routes/index"
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as InstancesInstanceIdRouteImport } from './routes/instances.$instanceId'
+import { Route as InstancesInstanceIdTasksRouteImport } from './routes/instances.$instanceId.tasks'
+import { Route as InstancesInstanceIdIndexesIndexUidSettingsRouteImport } from './routes/instances.$instanceId.indexes.$indexUid.settings'
+import { Route as InstancesInstanceIdIndexesIndexUidDocumentsRouteImport } from './routes/instances.$instanceId.indexes.$indexUid.documents'
 
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InstancesInstanceIdRoute = InstancesInstanceIdRouteImport.update({
+  id: '/instances/$instanceId',
+  path: '/instances/$instanceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstancesInstanceIdTasksRoute =
+  InstancesInstanceIdTasksRouteImport.update({
+    id: '/tasks',
+    path: '/tasks',
+    getParentRoute: () => InstancesInstanceIdRoute,
+  } as any)
+const InstancesInstanceIdIndexesIndexUidSettingsRoute =
+  InstancesInstanceIdIndexesIndexUidSettingsRouteImport.update({
+    id: '/indexes/$indexUid/settings',
+    path: '/indexes/$indexUid/settings',
+    getParentRoute: () => InstancesInstanceIdRoute,
+  } as any)
+const InstancesInstanceIdIndexesIndexUidDocumentsRoute =
+  InstancesInstanceIdIndexesIndexUidDocumentsRouteImport.update({
+    id: '/indexes/$indexUid/documents',
+    path: '/indexes/$indexUid/documents',
+    getParentRoute: () => InstancesInstanceIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/instances/$instanceId': typeof InstancesInstanceIdRouteWithChildren
+  '/instances/$instanceId/tasks': typeof InstancesInstanceIdTasksRoute
+  '/instances/$instanceId/indexes/$indexUid/documents': typeof InstancesInstanceIdIndexesIndexUidDocumentsRoute
+  '/instances/$instanceId/indexes/$indexUid/settings': typeof InstancesInstanceIdIndexesIndexUidSettingsRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/instances/$instanceId': typeof InstancesInstanceIdRouteWithChildren
+  '/instances/$instanceId/tasks': typeof InstancesInstanceIdTasksRoute
+  '/instances/$instanceId/indexes/$indexUid/documents': typeof InstancesInstanceIdIndexesIndexUidDocumentsRoute
+  '/instances/$instanceId/indexes/$indexUid/settings': typeof InstancesInstanceIdIndexesIndexUidSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/instances/$instanceId': typeof InstancesInstanceIdRouteWithChildren
+  '/instances/$instanceId/tasks': typeof InstancesInstanceIdTasksRoute
+  '/instances/$instanceId/indexes/$indexUid/documents': typeof InstancesInstanceIdIndexesIndexUidDocumentsRoute
+  '/instances/$instanceId/indexes/$indexUid/settings': typeof InstancesInstanceIdIndexesIndexUidSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/"
+  fullPaths:
+    | '/'
+    | '/instances/$instanceId'
+    | '/instances/$instanceId/tasks'
+    | '/instances/$instanceId/indexes/$indexUid/documents'
+    | '/instances/$instanceId/indexes/$indexUid/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: "/"
-  id: "__root__" | "/"
+  to:
+    | '/'
+    | '/instances/$instanceId'
+    | '/instances/$instanceId/tasks'
+    | '/instances/$instanceId/indexes/$indexUid/documents'
+    | '/instances/$instanceId/indexes/$indexUid/settings'
+  id:
+    | '__root__'
+    | '/'
+    | '/instances/$instanceId'
+    | '/instances/$instanceId/tasks'
+    | '/instances/$instanceId/indexes/$indexUid/documents'
+    | '/instances/$instanceId/indexes/$indexUid/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  InstancesInstanceIdRoute: typeof InstancesInstanceIdRouteWithChildren
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/"
-      path: "/"
-      fullPath: "/"
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/instances/$instanceId': {
+      id: '/instances/$instanceId'
+      path: '/instances/$instanceId'
+      fullPath: '/instances/$instanceId'
+      preLoaderRoute: typeof InstancesInstanceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instances/$instanceId/tasks': {
+      id: '/instances/$instanceId/tasks'
+      path: '/tasks'
+      fullPath: '/instances/$instanceId/tasks'
+      preLoaderRoute: typeof InstancesInstanceIdTasksRouteImport
+      parentRoute: typeof InstancesInstanceIdRoute
+    }
+    '/instances/$instanceId/indexes/$indexUid/settings': {
+      id: '/instances/$instanceId/indexes/$indexUid/settings'
+      path: '/indexes/$indexUid/settings'
+      fullPath: '/instances/$instanceId/indexes/$indexUid/settings'
+      preLoaderRoute: typeof InstancesInstanceIdIndexesIndexUidSettingsRouteImport
+      parentRoute: typeof InstancesInstanceIdRoute
+    }
+    '/instances/$instanceId/indexes/$indexUid/documents': {
+      id: '/instances/$instanceId/indexes/$indexUid/documents'
+      path: '/indexes/$indexUid/documents'
+      fullPath: '/instances/$instanceId/indexes/$indexUid/documents'
+      preLoaderRoute: typeof InstancesInstanceIdIndexesIndexUidDocumentsRouteImport
+      parentRoute: typeof InstancesInstanceIdRoute
     }
   }
 }
 
+interface InstancesInstanceIdRouteChildren {
+  InstancesInstanceIdTasksRoute: typeof InstancesInstanceIdTasksRoute
+  InstancesInstanceIdIndexesIndexUidDocumentsRoute: typeof InstancesInstanceIdIndexesIndexUidDocumentsRoute
+  InstancesInstanceIdIndexesIndexUidSettingsRoute: typeof InstancesInstanceIdIndexesIndexUidSettingsRoute
+}
+
+const InstancesInstanceIdRouteChildren: InstancesInstanceIdRouteChildren = {
+  InstancesInstanceIdTasksRoute: InstancesInstanceIdTasksRoute,
+  InstancesInstanceIdIndexesIndexUidDocumentsRoute:
+    InstancesInstanceIdIndexesIndexUidDocumentsRoute,
+  InstancesInstanceIdIndexesIndexUidSettingsRoute:
+    InstancesInstanceIdIndexesIndexUidSettingsRoute,
+}
+
+const InstancesInstanceIdRouteWithChildren =
+  InstancesInstanceIdRoute._addFileChildren(InstancesInstanceIdRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  InstancesInstanceIdRoute: InstancesInstanceIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx"
-import type { createStart } from "@tanstack/react-start"
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>

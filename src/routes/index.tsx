@@ -1,19 +1,43 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { Button } from "@/components/ui/button"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
-export const Route = createFileRoute("/")({ component: App })
+import { Card, CardContent } from "@/components/ui/card"
+import { SavedInstancesPanel } from "@/features/meili/saved-instances-panel"
+import { useSavedInstances } from "@/lib/meili/use-saved-instances"
 
-function App() {
+export const Route = createFileRoute("/")({ component: HomePage })
+
+function HomePage() {
+  const navigate = useNavigate()
+  const { deleteInstance, isHydrated, saveInstance, selectInstance, state } =
+    useSavedInstances()
+
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
+    <main className="flex min-h-svh justify-center p-6">
+      <div className="flex w-full max-w-6xl flex-col gap-6">
+        {isHydrated ? (
+          <SavedInstancesPanel
+            instances={state.instances}
+            lastSelectedInstanceId={state.lastSelectedInstanceId}
+            onRemove={deleteInstance}
+            onSave={saveInstance}
+            onSelect={(instanceId) => {
+              selectInstance(instanceId)
+              void navigate({
+                params: { instanceId },
+                to: "/instances/$instanceId",
+              })
+            }}
+          />
+        ) : (
+          <Card>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Loading saved instances...
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
-    </div>
+    </main>
   )
 }
