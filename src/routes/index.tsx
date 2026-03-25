@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { SavedInstancesPanel } from "@/features/meili/saved-instances-panel"
+import { DEFAULT_INDEX_OVERVIEW_ROUTE_SEARCH } from "@/lib/meili/index-overview"
 import { useSavedInstances } from "@/lib/meili/use-saved-instances"
 
 export const Route = createFileRoute("/")({ component: HomePage })
@@ -24,6 +25,7 @@ function HomePage() {
               selectInstance(instanceId)
               void navigate({
                 params: { instanceId },
+                search: DEFAULT_INDEX_OVERVIEW_ROUTE_SEARCH,
                 to: "/instances/$instanceId",
               })
             }}

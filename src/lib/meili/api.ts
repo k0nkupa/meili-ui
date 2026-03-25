@@ -1,13 +1,13 @@
-import {
-  
-  MeiliSearch
-  
-  
-  
-  
+import { MeiliSearch } from "meilisearch"
+import type {
+  EnqueuedTask,
+  Settings,
+  Task,
+  TaskStatus,
+  TaskType,
 } from "meilisearch"
-import type {EnqueuedTask, Settings, Task, TaskStatus, TaskType} from "meilisearch";
 
+import type { CreateIndexInput } from "@/lib/meili/indexes"
 import type { SavedInstance } from "@/lib/meili/types"
 
 export type DocumentRecord = Record<string, unknown>
@@ -77,6 +77,16 @@ export async function listIndexes(
     uid: index.uid,
     updatedAt: index.updatedAt,
   }))
+}
+
+export async function createIndex(
+  instance: SavedInstance,
+  input: CreateIndexInput
+): Promise<EnqueuedTask> {
+  return await createClient(instance).createIndex(
+    input.uid,
+    input.primaryKey ? { primaryKey: input.primaryKey } : undefined
+  )
 }
 
 export async function listDocuments(

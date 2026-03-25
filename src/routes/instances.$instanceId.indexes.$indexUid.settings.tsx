@@ -17,6 +17,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
 import { getIndexSettings, updateIndexSettings } from "@/lib/meili/api"
+import { DEFAULT_INDEX_OVERVIEW_ROUTE_SEARCH } from "@/lib/meili/index-overview"
 import { useSavedInstances } from "@/lib/meili/use-saved-instances"
 
 export const Route = createFileRoute(
@@ -90,7 +91,13 @@ function SettingsPage() {
             onClick={() =>
               void navigate({
                 params: { indexUid, instanceId },
-                search: { limit: 20, page: 1, query: "", view: "table" },
+                search: {
+                  ...DEFAULT_INDEX_OVERVIEW_ROUTE_SEARCH,
+                  limit: 20,
+                  page: 1,
+                  query: "",
+                  view: "table",
+                },
                 to: "/instances/$instanceId/indexes/$indexUid/documents",
               })
             }

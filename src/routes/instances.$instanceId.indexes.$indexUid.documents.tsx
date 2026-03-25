@@ -289,6 +289,11 @@ function DocumentsPage() {
             onClick={() =>
               void navigate({
                 params: { instanceId },
+                search: {
+                  indexGroup: search.indexGroup,
+                  indexQuery: search.indexQuery,
+                  indexSort: search.indexSort,
+                },
                 to: "/instances/$instanceId",
               })
             }

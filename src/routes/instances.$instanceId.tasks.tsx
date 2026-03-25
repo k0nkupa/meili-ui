@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { ChevronLeftIcon } from "lucide-react"
+import { ChevronLeftIcon, RefreshCcwIcon } from "lucide-react"
 
 import type { ComponentProps } from "react"
 import type { TaskStatus, TaskType } from "meilisearch"
+import type { TaskRecord } from "@/lib/meili/tasks"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { listTasks } from "@/lib/meili/api"
+import { DEFAULT_INDEX_OVERVIEW_ROUTE_SEARCH } from "@/lib/meili/index-overview"
+import { reconcileSelectedTask } from "@/lib/meili/tasks"
 import { useSavedInstances } from "@/lib/meili/use-saved-instances"
 
 export const Route = createFileRoute("/instances/$instanceId/tasks")({
@@ -42,13 +45,51 @@ function TasksPage() {
   const [statusFilter, setStatusFilter] = useState("")
   const [typeFilter, setTypeFilter] = useState("")
   const [indexFilter, setIndexFilter] = useState("")
-  const [tasks, setTasks] = useState<Array<Record<string, unknown>>>([])
-  const [selectedTask, setSelectedTask] = useState<Record<
-    string,
-    unknown
-  > | null>(null)
+  const [tasks, setTasks] = useState<Array<TaskRecord>>([])
+  const [selectedTask, setSelectedTask] = useState<TaskRecord | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  async function loadTasks(
+    currentInstance = instance,
+    shouldApply: () => boolean = () => true
+  ) {
+    if (!currentInstance) {
+      return
+    }
+
+    setIsLoading(true)
+    setErrorMessage(null)
+
+    try {
+      const response = await listTasks(currentInstance, {
+        indexUid: indexFilter || undefined,
+        limit: 20,
+        statuses: statusFilter
+          ? ([statusFilter] as Array<TaskStatus>)
+          : undefined,
+        types: typeFilter ? ([typeFilter] as Array<TaskType>) : undefined,
+      })
+      const nextTasks = response as Array<TaskRecord>
+
+      if (!shouldApply()) {
+        return
+      }
+
+      setTasks(nextTasks)
+      setSelectedTask((current) => reconcileSelectedTask(current, nextTasks))
+    } catch (error) {
+      if (!shouldApply()) {
+        return
+      }
+
+      setErrorMessage(error instanceof Error ? error.message : "Unknown error")
+    } finally {
+      if (shouldApply()) {
+        setIsLoading(false)
+      }
+    }
+  }
 
   useEffect(() => {
     if (!instance) {
@@ -66,44 +107,7 @@ function TasksPage() {
     const currentInstance = instance
     let isMounted = true
 
-    async function loadTasks() {
-      setIsLoading(true)
-      setErrorMessage(null)
-
-      try {
-        const response = await listTasks(currentInstance, {
-          indexUid: indexFilter || undefined,
-          limit: 20,
-          statuses: statusFilter
-            ? ([statusFilter] as Array<TaskStatus>)
-            : undefined,
-          types: typeFilter ? ([typeFilter] as Array<TaskType>) : undefined,
-        })
-
-        if (isMounted) {
-          setTasks(response as Array<Record<string, unknown>>)
-          setSelectedTask((current) =>
-            current
-              ? ((response as Array<Record<string, unknown>>).find(
-                  ({ uid }) => uid === current.uid
-                ) ?? null)
-              : null
-          )
-        }
-      } catch (error) {
-        if (isMounted) {
-          setErrorMessage(
-            error instanceof Error ? error.message : "Unknown error"
-          )
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void loadTasks()
+    void loadTasks(currentInstance, () => isMounted)
 
     return () => {
       isMounted = false
@@ -113,26 +117,40 @@ function TasksPage() {
   return (
     <main className="flex min-h-svh justify-center p-6">
       <div className="flex w-full max-w-6xl flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <Button
-            onClick={() =>
-              void navigate({
-                params: { instanceId },
-                to: "/instances/$instanceId",
-              })
-            }
-            type="button"
-            variant="secondary"
-          >
-            <ChevronLeftIcon data-icon="inline-start" />
-            Back to instance
-          </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold">Tasks</h1>
-            <p className="text-sm text-muted-foreground">
-              Inspect recent tasks for{" "}
-              {instance?.name ?? "the selected instance"}.
-            </p>
+            <Button
+              onClick={() =>
+                void navigate({
+                  params: { instanceId },
+                  search: DEFAULT_INDEX_OVERVIEW_ROUTE_SEARCH,
+                  to: "/instances/$instanceId",
+                })
+              }
+              type="button"
+              variant="secondary"
+            >
+              <ChevronLeftIcon data-icon="inline-start" />
+              Back to instance
+            </Button>
+            <div className="flex flex-col gap-1">
+              <h1 className="text-2xl font-semibold">Tasks</h1>
+              <p className="text-sm text-muted-foreground">
+                Inspect recent tasks for{" "}
+                {instance?.name ?? "the selected instance"}.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={!instance || isLoading}
+              onClick={() => void loadTasks()}
+              type="button"
+              variant="outline"
+            >
+              <RefreshCcwIcon data-icon="inline-start" />
+              Refresh
+            </Button>
           </div>
         </div>
 
