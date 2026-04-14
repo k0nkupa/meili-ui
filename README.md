@@ -22,6 +22,12 @@ This app is for internal use. In the current phase there is no login, no server-
 
 That last one is intentional for now. It is fine for an internal-only phase, and a terrible idea for anything public. Software has standards.
 
+## Security
+
+See `SECURITY.md` for vulnerability reporting and security scope.
+
+This repo is currently an internal admin UI. Do not deploy it to the public internet as-is: it stores Meilisearch API keys in browser storage and does not implement first-party authz in this repo.
+
 ## Tech Stack
 
 - React 19 + TypeScript
