@@ -2,9 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { ChevronLeftIcon } from "lucide-react"
+import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  ChevronLeftIcon,
+  ListTodoIcon,
+  RefreshCcwIcon,
+} from "lucide-react"
 
 import type { DocumentRecord } from "@/lib/meili/api"
+import {
+  normalizeDocumentsSearch,
+  sortDocuments,
+} from "@/features/meili/documents-table-state"
 import {
   DocumentRawJsonView,
   DocumentValueCell,
@@ -40,6 +51,13 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Table,
   TableBody,
   TableCell,
@@ -61,29 +79,19 @@ import {
 } from "@/lib/meili/documents"
 import { useSavedInstances } from "@/lib/meili/use-saved-instances"
 
-type DocumentsSearch = {
-  limit?: number
-  page?: number
-  query?: string
-  view?: "json" | "table"
+type NormalizedDocumentsSearch = ReturnType<typeof normalizeDocumentsSearch>
+type DocumentsSearch = Partial<NormalizedDocumentsSearch & Record<string, unknown>>
+type DocumentsRouteSearch = Omit<NormalizedDocumentsSearch, "sortBy" | "sortDir"> & {
+  sortBy?: string
+  sortDir?: "asc" | "desc"
 }
 
 export const Route = createFileRoute(
   "/instances/$instanceId/indexes/$indexUid/documents"
 )({
   component: DocumentsPage,
-  validateSearch: (search: DocumentsSearch) => ({
-    limit:
-      typeof search.limit === "number" && Number.isFinite(search.limit)
-        ? search.limit
-        : 20,
-    page:
-      typeof search.page === "number" && Number.isFinite(search.page)
-        ? search.page
-        : 1,
-    query: typeof search.query === "string" ? search.query : "",
-    view: search.view === "json" ? "json" : "table",
-  }),
+  validateSearch: (search: DocumentsSearch): DocumentsRouteSearch =>
+    normalizeDocumentsSearch(search),
 })
 
 function DocumentsPage() {
@@ -98,6 +106,7 @@ function DocumentsPage() {
   const [total, setTotal] = useState(0)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [refreshNonce, setRefreshNonce] = useState(0)
   const [queryInput, setQueryInput] = useState(search.query)
   const [editorOpen, setEditorOpen] = useState(false)
   const [editorValue, setEditorValue] = useState("{}")
@@ -162,11 +171,15 @@ function DocumentsPage() {
     return () => {
       isMounted = false
     }
-  }, [indexUid, instance, search.limit, search.page, search.query])
+  }, [indexUid, instance, refreshNonce, search.limit, search.page, search.query])
 
   const columns = useMemo(
     () => deriveDocumentColumns(documents, primaryKey),
     [documents, primaryKey]
+  )
+  const sortedDocuments = useMemo(
+    () => sortDocuments(documents, search.sortBy ?? "", search.sortDir ?? "asc"),
+    [documents, search.sortBy, search.sortDir]
   )
   const rawMetadata = useMemo(() => {
     const metadata = [
@@ -216,6 +229,10 @@ function DocumentsPage() {
       search: { ...search, ...nextSearch },
       to: "/instances/$instanceId/indexes/$indexUid/documents",
     })
+  }
+
+  function handleRefresh() {
+    setRefreshNonce((current) => current + 1)
   }
 
   function openCreateDialog() {
@@ -284,30 +301,61 @@ function DocumentsPage() {
   return (
     <main className="flex min-h-svh justify-center p-6">
       <div className="flex w-full max-w-7xl flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <Button
-            onClick={() =>
-              void navigate({
-                params: { instanceId },
-                search: {
-                  indexGroup: search.indexGroup,
-                  indexQuery: search.indexQuery,
-                  indexSort: search.indexSort,
-                },
-                to: "/instances/$instanceId",
-              })
-            }
-            type="button"
-            variant="secondary"
-          >
-            <ChevronLeftIcon data-icon="inline-start" />
-            Back to instance
-          </Button>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold">{indexUid} documents</h1>
-            <p className="text-sm text-muted-foreground">
-              Browse one index in either table mode or raw JSON mode.
-            </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <Button
+              onClick={() =>
+                void navigate({
+                  params: { instanceId },
+                  search: {
+                    indexGroup: search.indexGroup,
+                    indexQuery: search.indexQuery,
+                    indexSort: search.indexSort,
+                  },
+                  to: "/instances/$instanceId",
+                })
+              }
+              type="button"
+              variant="secondary"
+            >
+              <ChevronLeftIcon data-icon="inline-start" />
+              Back to instance
+            </Button>
+            <div className="flex flex-col gap-1">
+              <h1 className="text-2xl font-semibold">{indexUid} documents</h1>
+              <p className="text-sm text-muted-foreground">
+                Browse one index in either table mode or raw JSON mode.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <Button
+              onClick={() =>
+                void navigate({
+                  params: { instanceId },
+                  search: {
+                    indexGroup: search.indexGroup,
+                    indexQuery: search.indexQuery,
+                    indexSort: search.indexSort,
+                  },
+                  to: "/instances/$instanceId/tasks",
+                })
+              }
+              type="button"
+              variant="outline"
+            >
+              <ListTodoIcon data-icon="inline-start" />
+              Tasks
+            </Button>
+            <Button
+              disabled={!instance || isLoading}
+              onClick={handleRefresh}
+              type="button"
+              variant="outline"
+            >
+              <RefreshCcwIcon data-icon="inline-start" />
+              Refresh
+            </Button>
           </div>
         </div>
 
@@ -341,8 +389,8 @@ function DocumentsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                <FieldGroup className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto]">
-                  <Field>
+                <FieldGroup className="grid gap-4 md:grid-cols-12">
+                  <Field className="md:col-span-7 lg:col-span-8">
                     <FieldLabel htmlFor="documents-query">Search</FieldLabel>
                     <Input
                       id="documents-query"
@@ -351,16 +399,46 @@ function DocumentsPage() {
                       value={queryInput}
                     />
                   </Field>
-                  <Button
-                    onClick={() => updateSearch({ page: 1, query: queryInput })}
-                    type="button"
-                    variant="outline"
-                  >
-                    Apply search
-                  </Button>
-                  <Button onClick={openCreateDialog} type="button">
-                    Create document
-                  </Button>
+                  <Field className="md:col-span-2 lg:col-span-2">
+                    <FieldLabel htmlFor="documents-limit">Limit</FieldLabel>
+                    <Select
+                      onValueChange={(value) =>
+                        updateSearch({ limit: Number(value), page: 1 })
+                      }
+                      value={String(search.limit)}
+                    >
+                      <SelectTrigger className="w-full" id="documents-limit">
+                        <SelectValue placeholder="20" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <div className="flex flex-wrap items-end gap-2 md:col-span-3 md:justify-end lg:col-span-2">
+                    <Button
+                      onClick={() => updateSearch({ page: 1, query: queryInput })}
+                      type="button"
+                      variant="outline"
+                    >
+                      Apply search
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setQueryInput("")
+                        updateSearch({ page: 1, query: "" })
+                      }}
+                      type="button"
+                      variant="outline"
+                    >
+                      Clear
+                    </Button>
+                    <Button onClick={openCreateDialog} type="button">
+                      Create document
+                    </Button>
+                  </div>
                 </FieldGroup>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   <span>
@@ -405,14 +483,45 @@ function DocumentsPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          {columns.map((column) => (
-                            <TableHead key={column}>{column}</TableHead>
-                          ))}
+                          {columns.map((column) => {
+                            const isSortedColumn = search.sortBy === column
+                            const isAscending = search.sortDir !== "desc"
+
+                            return (
+                              <TableHead key={column}>
+                                <Button
+                                  className="-ml-3 h-8 px-3"
+                                  onClick={() =>
+                                    updateSearch({
+                                      sortBy: column,
+                                      sortDir:
+                                        isSortedColumn && isAscending
+                                          ? "desc"
+                                          : "asc",
+                                    })
+                                  }
+                                  type="button"
+                                  variant="ghost"
+                                >
+                                  <span>{column}</span>
+                                  {isSortedColumn ? (
+                                    isAscending ? (
+                                      <ArrowUpIcon className="size-3.5" />
+                                    ) : (
+                                      <ArrowDownIcon className="size-3.5" />
+                                    )
+                                  ) : (
+                                    <ArrowUpDownIcon className="size-3.5 text-muted-foreground" />
+                                  )}
+                                </Button>
+                              </TableHead>
+                            )
+                          })}
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {documents.map((document, index) => {
+                        {sortedDocuments.map((document, index) => {
                           const documentId = getDocumentIdentifier(
                             document,
                             primaryKey
