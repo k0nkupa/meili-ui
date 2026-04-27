@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/empty"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { getInstanceHostError } from "@/lib/meili/storage"
 
 export type SavedInstanceDraft = {
   id?: string
@@ -67,10 +68,12 @@ export function SavedInstancesPanel({
 }: SavedInstancesPanelProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [draft, setDraft] = useState<SavedInstanceDraft>(EMPTY_DRAFT)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!dialogOpen) {
       setDraft(EMPTY_DRAFT)
+      setSubmitError(null)
     }
   }, [dialogOpen])
 
@@ -86,6 +89,14 @@ export function SavedInstancesPanel({
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    const hostError = getInstanceHostError(draft.host)
+
+    if (hostError) {
+      setSubmitError(hostError)
+      return
+    }
+
     onSave({
       ...draft,
       apiKey: draft.apiKey.trim(),
@@ -148,8 +159,9 @@ export function SavedInstancesPanel({
                   <Alert>
                     <AlertTitle>Stored locally</AlertTitle>
                     <AlertDescription>
-                      This browser keeps the host and API key in localStorage
-                      for internal use only.
+                      This browser keeps the host and API key in localStorage.
+                      Use scoped keys only; do not use this flow for public
+                      deployments.
                     </AlertDescription>
                   </Alert>
                   <div className="flex flex-wrap gap-2">
@@ -216,6 +228,12 @@ export function SavedInstancesPanel({
               Enter a friendly name, the Meilisearch host URL, and the API key.
             </DialogDescription>
           </DialogHeader>
+          {submitError ? (
+            <Alert variant="destructive">
+              <AlertTitle>Unable to save instance</AlertTitle>
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
+          ) : null}
           <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
@@ -235,6 +253,7 @@ export function SavedInstancesPanel({
                   onChange={(event) => updateDraft("host", event.target.value)}
                   placeholder="https://search.example.com"
                   required
+                  type="url"
                   value={draft.host}
                 />
               </Field>
