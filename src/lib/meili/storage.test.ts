@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import {
   createSavedInstance,
+  getInstanceHostError,
   loadSavedInstancesState,
   removeSavedInstance,
   saveSavedInstancesState,
@@ -49,6 +50,22 @@ describe("saved instance storage", () => {
     expect(instance.name).toBe("Production")
     expect(instance.apiKey).toBe("masterKey")
     expect(instance.createdAt).toBe(instance.updatedAt)
+  })
+
+  test("rejects unsafe saved instance host values", () => {
+    expect(getInstanceHostError("")).toBe("Host URL is required.")
+    expect(getInstanceHostError("search.example.com")).toBe(
+      "Host must be a valid URL."
+    )
+    expect(getInstanceHostError("ftp://search.example.com")).toBe(
+      "Host must use http or https."
+    )
+    expect(getInstanceHostError("https://user:pass@search.example.com")).toBe(
+      "Host must not include credentials."
+    )
+    expect(getInstanceHostError("https://search.example.com/?key=value")).toBe(
+      "Host must not include query strings or fragments."
+    )
   })
 
   test("persists and reloads state from localStorage", () => {

@@ -2,7 +2,43 @@ import type { SavedInstance, SavedInstancesState } from "@/lib/meili/types"
 
 const STORAGE_KEY = "meili-ui.instances.v1"
 
+export function getInstanceHostError(host: string): string | null {
+  const trimmedHost = host.trim()
+
+  if (!trimmedHost) {
+    return "Host URL is required."
+  }
+
+  let url: URL
+
+  try {
+    url = new URL(trimmedHost)
+  } catch {
+    return "Host must be a valid URL."
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return "Host must use http or https."
+  }
+
+  if (url.username || url.password) {
+    return "Host must not include credentials."
+  }
+
+  if (url.search || url.hash) {
+    return "Host must not include query strings or fragments."
+  }
+
+  return null
+}
+
 export function normalizeInstanceHost(host: string) {
+  const error = getInstanceHostError(host)
+
+  if (error) {
+    throw new Error(error)
+  }
+
   return host.trim().replace(/\/+$/, "")
 }
 

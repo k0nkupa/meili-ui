@@ -20,7 +20,19 @@ This app is for internal use. In the current phase there is no login, no server-
 - No instance-wide settings editor
 - API keys are stored in plaintext in browser `localStorage`
 
-That last one is intentional for now. It is fine for an internal-only phase, and a terrible idea for anything public. Software has standards.
+That last one is intentional for now. It is fine only for trusted internal use
+with scoped keys, and a terrible idea for anything public. Software has
+standards.
+
+## Security Notes
+
+- Do not deploy this as a public shared admin surface in its current shape.
+- Do not enter production master keys in a hosted copy of this app.
+- Prefer scoped Meilisearch keys with the least privilege needed for the task.
+- A public deployment needs a server-side proxy or short-lived token flow so
+  admin credentials never live in browser storage.
+- Saved hosts are limited to `http` and `https` URLs without embedded
+  credentials, query strings, or fragments.
 
 ## Security
 
