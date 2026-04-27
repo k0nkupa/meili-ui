@@ -1,24 +1,58 @@
 # Meili UI
 
-Internal Meilisearch admin UI built with TanStack Start, React, TypeScript, Tailwind, and shadcn/basecn components.
+<p align="center">
+  An internal admin UI for Meilisearch instances.
+  <br />
+  Fast to open, browser-local, and built for the jobs that are awkward in raw JSON and curl.
+</p>
 
-This app is for internal use. In the current phase there is no login, no server-side proxy, and no shared persistence. Users enter a Meilisearch host and API key in the browser, and the app stores those values in `localStorage`.
+## Why Meili UI
 
-## What It Does
+Meili UI is an internal React app for inspecting and maintaining Meilisearch
+instances. It is built with TanStack Start, TanStack Router, TypeScript,
+Tailwind CSS, and shadcn/basecn primitives.
 
-- Save multiple Meilisearch instances in `localStorage`
-- Select an instance and browse its indexes
+The app is intentionally local-first in this phase. There is no login,
+server-side proxy, or shared persistence. Users enter a Meilisearch host and
+API key in the browser, and the app stores those values in `localStorage`.
+
+It currently focuses on the core admin workflow:
+
+- Save and switch between multiple Meilisearch instances
+- Browse indexes for a selected instance
+- Create new indexes
 - View index documents as a table or raw JSON
+- Search and paginate document results
 - Create, edit, and delete single documents through JSON
-- Inspect recent tasks
-- View and update index settings as raw JSON
+- Inspect recent tasks with status, type, and index filters
+- View and patch index settings as raw JSON
 
-## Current Limits
+## Highlights
 
-- No authentication yet
+- Browser-local instance storage with quick reconnects
+- Route-driven UI powered by TanStack Router
+- Index overview with grouping, search, sorting, and refresh controls
+- Document table view with derived columns and primary-key awareness
+- Raw JSON document view for payload inspection
+- Single-document create, edit, and delete flows
+- Recent task inspection for operational follow-up
+- Raw index settings editor for focused maintenance
+- Focused Vitest coverage for storage, index overview, tasks, and documents
+
+## Status
+
+Meili UI is usable for internal Meilisearch maintenance, but it is still an
+internal-only tool. The current phase favors direct access and fast iteration
+over hardened deployment boundaries.
+
+Current limits:
+
+- No authentication
+- No server-side Meilisearch proxy
+- No shared team persistence
 - No bulk document import or delete
 - No instance-wide settings editor
-- API keys are stored in plaintext in browser `localStorage`
+- API keys are stored in plaintext browser `localStorage`
 
 That last one is intentional for now. It is fine only for trusted internal use
 with scoped keys, and a terrible idea for anything public. Software has
@@ -38,47 +72,106 @@ standards.
 
 See `SECURITY.md` for vulnerability reporting and security scope.
 
-This repo is currently an internal admin UI. Do not deploy it to the public internet as-is: it stores Meilisearch API keys in browser storage and does not implement first-party authz in this repo.
+This repo is currently an internal admin UI. Do not deploy it to the public
+internet as-is: it stores Meilisearch API keys in browser storage and does not
+implement first-party authz in this repo.
 
-## Tech Stack
+## Requirements
 
-- React 19 + TypeScript
-- TanStack Start + TanStack Router
-- Tailwind CSS v4
-- shadcn/ui and basecn primitives
-- Meilisearch JavaScript client
-- Vitest for unit tests
+- Bun
+- Node-compatible local development environment
+- Access to a Meilisearch host and API key
 
-## Local Development
-
-Install dependencies:
+## Quick Start
 
 ```bash
 bun install
-```
-
-Start the app on `http://localhost:3000`:
-
-```bash
 bun run dev
 ```
 
-Other useful commands:
+The dev server runs on:
+
+```text
+http://localhost:3000
+```
+
+Useful development commands:
 
 ```bash
 bun run test
 bun run typecheck
-bun run build
 bun run lint
+bun run build
+bun run preview
 ```
 
 ## Project Structure
 
-- `src/routes/`: app pages and route-driven UI
-- `src/features/meili/`: page-level Meilisearch UI compositions
-- `src/lib/meili/`: storage, client helpers, and document utilities
-- `src/components/ui/`: shared shadcn/basecn primitives
+```text
+src/
+  components/ui/       Shared shadcn/basecn primitives
+  features/meili/      Page-level Meilisearch UI compositions
+  hooks/               Shared React hooks
+  lib/meili/           Storage, API helpers, and domain utilities
+  routes/              TanStack Router routes
+  router.tsx           Router setup
+  routeTree.gen.ts     Generated route tree
+  styles.css           Global styles and Tailwind theme
+public/
+  favicon.ico
+  manifest.json
+  robots.txt
+```
 
-## Notes For Validation
+Feature logic should stay close to the route or component that owns it. This
+repo is intentionally small, so avoid broad folder hierarchies until the code
+actually earns them.
 
-Local validation can use `.env` values such as `MEILISEARCH_URL`, `MEILISEARCH_API_KEY`, and `MEILISEARCH_BIV_PRODUCT_INDEX`, but the app itself does not read them at runtime. The intended product flow is still manual entry through the UI.
+## Configuration
+
+Runtime Meilisearch connection details are entered through the UI. The app does
+not read `.env` values at runtime.
+
+Local validation can still use environment values such as:
+
+```text
+MEILISEARCH_URL
+MEILISEARCH_API_KEY
+MEILISEARCH_BIV_PRODUCT_INDEX
+```
+
+Those values are for developer workflows only. The product flow is manual entry
+in the browser.
+
+## Testing
+
+The current test suite covers:
+
+- Saved instance storage behavior
+- Index overview grouping, sorting, and filtering
+- Document column derivation and document utilities
+- Task selection reconciliation
+- Document viewer rendering
+
+Run the suite with:
+
+```bash
+bun run test
+```
+
+Before opening a PR, run:
+
+```bash
+bun run typecheck
+bun run lint
+bun run test
+```
+
+## Contributing
+
+Keep changes focused and route-aware. Prefer existing aliases such as
+`@/components/ui/button`, keep generated route updates explicit, and use the
+repo formatter instead of hand-polishing whitespace.
+
+Before sending UI changes, include screenshots and call out any route, generated
+file, or Meilisearch behavior changes.
